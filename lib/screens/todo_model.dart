@@ -10,8 +10,6 @@ class Todo {
     required this.createdAt,
     this.isDone = false,
   });
-
-  // Add this method for potential future use
   Todo copyWith({
     String? title,
     String? description,

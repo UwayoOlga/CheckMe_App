@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'todo_model.dart';
 import 'add_todo_screen.dart';
 
@@ -14,6 +13,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Todo> _todos = [];
   TodoFilter _currentFilter = TodoFilter.all;
+  Todo? _lastDeletedTodo;
+  int? _lastDeletedIndex;
 
   void _addTodo(Todo todo) {
     setState(() {
@@ -30,20 +31,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _deleteTodo(int index) {
     setState(() {
+      _lastDeletedTodo = _todos[index];
+      _lastDeletedIndex = index;
       _todos.removeAt(index);
     });
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Todo deleted'),
         action: SnackBarAction(
           label: 'UNDO',
           textColor: Colors.pink[200],
-          onPressed: () {
-            // Todo: Implement undo functionality
-          },
+          onPressed: _undoDelete,
         ),
       ),
     );
+  }
+  void _undoDelete() {
+    if (_lastDeletedTodo != null && _lastDeletedIndex != null) {
+      setState(() {
+        _todos.insert(_lastDeletedIndex!, _lastDeletedTodo!);
+      });
+    }
   }
 
   List<Todo> get _filteredTodos {
@@ -130,10 +139,18 @@ class _HomeScreenState extends State<HomeScreen> {
         itemCount: _filteredTodos.length,
         itemBuilder: (context, index) {
           final todo = _filteredTodos[index];
+          final originalIndex = _todos.indexOf(todo);
+
           return Dismissible(
             key: ValueKey(todo.createdAt),
-            background: Container(color: Colors.red),
-            onDismissed: (_) => _deleteTodo(_todos.indexOf(todo)),
+            direction: DismissDirection.endToStart,
+            background: Container(
+              alignment: Alignment.centerRight,
+              color: Colors.red,
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Icon(Icons.delete, color: Colors.white),
+            ),
+            onDismissed: (_) => _deleteTodo(originalIndex),
             child: Card(
               margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               child: ListTile(
@@ -146,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 leading: Checkbox(
                   value: todo.isDone,
-                  onChanged: (_) => _toggleTodoStatus(_todos.indexOf(todo)),
+                  onChanged: (_) => _toggleTodoStatus(originalIndex),
                   activeColor: Colors.pink,
                 ),
                 subtitle: Column(
@@ -157,15 +174,34 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(height: 4),
                     Text(
                       'Created: ${todo.createdAt.toString().substring(0, 10)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
                 onTap: () {
-                  // Todo: Implement detail screen navigation
+
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: Text(todo.title),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (todo.description != null) Text(todo.description!),
+                          SizedBox(height: 8),
+                          Text('Status: ${todo.isDone ? "Completed" : "Pending"}'),
+                          Text('Created on: ${todo.createdAt.toString().substring(0, 10)}'),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          child: Text("Close"),
+                          onPressed: () => Navigator.pop(context),
+                        )
+                      ],
+                    ),
+                  );
                 },
               ),
             ),
