@@ -2,6 +2,7 @@ class Todo {
   final String title;
   final String? description;
   final DateTime createdAt;
+  final DateTime? dueDate;
   bool isDone;
 
   Todo({
@@ -9,6 +10,7 @@ class Todo {
     this.description,
     required this.createdAt,
     this.isDone = false,
+    this.dueDate,
   });
   Todo copyWith({
     String? title,

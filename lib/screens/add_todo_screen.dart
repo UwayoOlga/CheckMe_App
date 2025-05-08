@@ -11,12 +11,15 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
   final _descController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  DateTime? _selectedDueDate;
+
   void _submit() {
     if (_formKey.currentState!.validate()) {
       final todo = Todo(
         title: _titleController.text,
         description: _descController.text.isEmpty ? null : _descController.text,
         createdAt: DateTime.now(),
+        dueDate: _selectedDueDate,
       );
       Navigator.pop(context, todo);
     }
@@ -68,6 +71,33 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                   labelText: 'Description (optional)',
                   border: OutlineInputBorder(),
                 ),
+              ),
+              const SizedBox(height: 16),
+               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _selectedDueDate == null
+                        ? 'No Due Date Selected'
+                        : 'Due Date: ${_selectedDueDate!.toLocal().toString().split(' ')[0]}',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2101),
+                      );
+                      if (picked != null && picked != _selectedDueDate)
+                        setState(() {
+                          _selectedDueDate = picked;
+                        });
+                    },
+                    child: Text('Select Due Date'),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
               SizedBox(
