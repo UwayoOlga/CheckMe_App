@@ -40,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
           label: 'UNDO',
           textColor: Colors.pink[200],
           onPressed: () {
+            // Optional: Implement undo logic
           },
         ),
       ),
@@ -49,7 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Todo> get _filteredTodos {
     var filteredList = _todos.where((todo) {
       return todo.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (todo.description != null && todo.description!.toLowerCase().contains(_searchQuery.toLowerCase()));
+          (todo.description != null && todo.description!.toLowerCase().contains(_searchQuery.toLowerCase())) ||
+          (todo.category != null && todo.category!.toLowerCase().contains(_searchQuery.toLowerCase()));
     }).toList();
 
     switch (_currentFilter) {
@@ -130,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               decoration: InputDecoration(
-                labelText: 'Search',
+                labelText: 'Search (title, description, or category)',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
@@ -182,13 +184,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           if (todo.description != null && todo.description!.isNotEmpty)
                             Text(todo.description!),
+                          if (todo.category != null && todo.category!.isNotEmpty)
+                            Text(
+                              'Category: ${todo.category}',
+                              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                            ),
                           SizedBox(height: 4),
                           Text(
                             'Created: ${todo.createdAt.toString().substring(0, 10)}',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                           if (_isOverdue(todo))
                             Text(

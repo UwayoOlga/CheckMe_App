@@ -12,6 +12,9 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
   final _formKey = GlobalKey<FormState>();
 
   DateTime? _selectedDueDate;
+  String? _selectedCategory;
+
+  final List<String> _categories = ['School', 'Personal', 'Urgent'];
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
@@ -20,6 +23,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
         description: _descController.text.isEmpty ? null : _descController.text,
         createdAt: DateTime.now(),
         dueDate: _selectedDueDate,
+        category: _selectedCategory, // <-- new category field
       );
       Navigator.pop(context, todo);
     }
@@ -73,14 +77,38 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-               Row(
+
+              /// 🗂️ Category Dropdown
+              DropdownButtonFormField<String>(
+                decoration: const InputDecoration(
+                  labelText: 'Category',
+                  border: OutlineInputBorder(),
+                ),
+                value: _selectedCategory,
+                items: _categories.map((category) {
+                  return DropdownMenuItem(
+                    value: category,
+                    child: Text(category),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedCategory = value;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 16),
+
+              /// 📅 Due Date Picker
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     _selectedDueDate == null
                         ? 'No Due Date Selected'
                         : 'Due Date: ${_selectedDueDate!.toLocal().toString().split(' ')[0]}',
-                    style: TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 16),
                   ),
                   ElevatedButton(
                     onPressed: () async {
@@ -95,10 +123,11 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                           _selectedDueDate = picked;
                         });
                     },
-                    child: Text('Select Due Date'),
+                    child: const Text('Select Due Date'),
                   ),
                 ],
               ),
+
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
