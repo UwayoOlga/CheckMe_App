@@ -15,13 +15,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
+      await Future.delayed(const Duration(seconds: 1));
 
       if (!mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => HomeScreen(userName: _emailController.text.split('@')[0]),
+          builder: (_) => HomeScreen(userName: _emailController.text.split('@')[0], onLogout: () {  },),
         ),
       );
     }

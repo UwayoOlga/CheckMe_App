@@ -1,43 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'todo_model.dart';
+import 'package:checkme/theme/todo_form_state.dart';
 
-class AddTodoScreen extends StatefulWidget {
+class AddTodoScreen extends ConsumerWidget {
+  const AddTodoScreen({Key? key}) : super(key: key);
+
   @override
-  _AddTodoScreenState createState() => _AddTodoScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
 
-class _AddTodoScreenState extends State<AddTodoScreen> {
-  final _titleController = TextEditingController();
-  final _descController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
+    final todoForm = ref.watch(todoFormProvider);
 
-  DateTime? _selectedDueDate;
-  String? _selectedCategory;
+    final todoFormNotifier = ref.read(todoFormProvider.notifier);
 
-  final List<String> _categories = ['School', 'Personal', 'Urgent'];
-
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      final todo = Todo(
-        title: _titleController.text,
-        description: _descController.text.isEmpty ? null : _descController.text,
-        createdAt: DateTime.now(),
-        dueDate: _selectedDueDate,
-        category: _selectedCategory, // <-- new category field
-      );
-      Navigator.pop(context, todo);
+    void _submit() {
+      if (todoForm.title.isNotEmpty) {
+        final todo = Todo(
+          title: todoForm.title,
+          description: todoForm.description?.isEmpty ?? true ? null : todoForm.description,
+          createdAt: DateTime.now(),
+          dueDate: todoForm.dueDate,
+          category: todoForm.category,
+        );
+        Navigator.pop(context, todo);
+      }
     }
-  }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _descController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Todo'),
@@ -51,63 +39,59 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
-          key: _formKey,
           child: Column(
             children: [
+
               TextFormField(
-                controller: _titleController,
+                initialValue: todoForm.title,
                 decoration: const InputDecoration(
                   labelText: 'Todo Title',
                   border: OutlineInputBorder(),
                 ),
-                validator: (val) {
-                  if (val == null || val.isEmpty) {
-                    return 'Please enter a title';
-                  }
-                  return null;
+                onChanged: (value) {
+                  todoFormNotifier.updateTitle(value);
                 },
               ),
               const SizedBox(height: 16),
+
               TextField(
-                controller: _descController,
+                controller: TextEditingController(text: todoForm.description),
                 maxLines: 3,
                 decoration: const InputDecoration(
                   labelText: 'Description (optional)',
                   border: OutlineInputBorder(),
                 ),
+                onChanged: (value) {
+                  todoFormNotifier.updateDescription(value);
+                },
               ),
               const SizedBox(height: 16),
 
-              /// 🗂️ Category Dropdown
               DropdownButtonFormField<String>(
+                value: todoForm.category,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(),
                 ),
-                value: _selectedCategory,
-                items: _categories.map((category) {
+                items: ['School', 'Personal', 'Urgent'].map((category) {
                   return DropdownMenuItem(
                     value: category,
                     child: Text(category),
                   );
                 }).toList(),
                 onChanged: (value) {
-                  setState(() {
-                    _selectedCategory = value;
-                  });
+                  todoFormNotifier.updateCategory(value);
                 },
               ),
-
               const SizedBox(height: 16),
 
-              /// 📅 Due Date Picker
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    _selectedDueDate == null
+                    todoForm.dueDate == null
                         ? 'No Due Date Selected'
-                        : 'Due Date: ${_selectedDueDate!.toLocal().toString().split(' ')[0]}',
+                        : 'Due Date: ${todoForm.dueDate!.toLocal().toString().split(' ')[0]}',
                     style: const TextStyle(fontSize: 16),
                   ),
                   ElevatedButton(
@@ -118,17 +102,16 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                         firstDate: DateTime.now(),
                         lastDate: DateTime(2101),
                       );
-                      if (picked != null && picked != _selectedDueDate)
-                        setState(() {
-                          _selectedDueDate = picked;
-                        });
+                      if (picked != null && picked != todoForm.dueDate) {
+                        todoFormNotifier.updateDueDate(picked);
+                      }
                     },
                     child: const Text('Select Due Date'),
                   ),
                 ],
               ),
-
               const SizedBox(height: 32),
+
               SizedBox(
                 width: double.infinity,
                 height: 50,

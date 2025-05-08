@@ -5,14 +5,14 @@ import 'todo_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
-  const HomeScreen({required this.userName});
-
+  final VoidCallback onLogout;
+  const HomeScreen({required this.userName, required this.onLogout});
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Todo> _todos = [];
+  final List<Todo> _todos = [];
   TodoFilter _currentFilter = TodoFilter.all;
   String _searchQuery = '';
 
@@ -30,17 +30,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _deleteTodo(int index) {
-    setState(() {
-      _todos.removeAt(index);
-    });
+    final deletedTodo = _todos.removeAt(index);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Todo deleted'),
+        content: const Text('Todo deleted'),
         action: SnackBarAction(
           label: 'UNDO',
           textColor: Colors.pink[200],
           onPressed: () {
-            // Optional: Implement undo logic
+            setState(() {
+              _todos.insert(index, deletedTodo);
+            });
           },
         ),
       ),
@@ -48,12 +48,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Todo> get _filteredTodos {
-    var filteredList = _todos.where((todo) {
-      return todo.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          (todo.description != null && todo.description!.toLowerCase().contains(_searchQuery.toLowerCase())) ||
-          (todo.category != null && todo.category!.toLowerCase().contains(_searchQuery.toLowerCase()));
-    }).toList();
-
+    final filteredList = _todos.where((todo) =>
+    todo.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        (todo.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+            false)).toList();
     switch (_currentFilter) {
       case TodoFilter.completed:
         return filteredList.where((todo) => todo.isDone).toList();
@@ -66,8 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   bool _isOverdue(Todo todo) {
-    if (todo.dueDate == null) return false;
-    return todo.dueDate!.isBefore(DateTime.now()) && !todo.isDone;
+    return todo.dueDate?.isBefore(DateTime.now()) == true && !todo.isDone;
   }
 
   @override
@@ -77,53 +74,38 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text("Welcome, ${widget.userName}"),
         actions: [
           IconButton(
-            icon: Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list),
             onPressed: () {
               showModalBottomSheet(
                 context: context,
-                builder: (context) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      RadioListTile<TodoFilter>(
-                        title: Text('All Todos'),
-                        value: TodoFilter.all,
-                        groupValue: _currentFilter,
-                        onChanged: (value) {
-                          setState(() => _currentFilter = value!);
-                          Navigator.pop(context);
-                        },
-                      ),
-                      RadioListTile<TodoFilter>(
-                        title: Text('Completed'),
-                        value: TodoFilter.completed,
-                        groupValue: _currentFilter,
-                        onChanged: (value) {
-                          setState(() => _currentFilter = value!);
-                          Navigator.pop(context);
-                        },
-                      ),
-                      RadioListTile<TodoFilter>(
-                        title: Text('Pending'),
-                        value: TodoFilter.pending,
-                        groupValue: _currentFilter,
-                        onChanged: (value) {
-                          setState(() => _currentFilter = value!);
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ],
-                  );
-                },
+                builder: (context) => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: TodoFilter.values
+                      .map((filter) => RadioListTile<TodoFilter>(
+                    title: Text(filter.name[0].toUpperCase() +
+                        filter.name.substring(1)),
+                    value: filter,
+                    groupValue: _currentFilter,
+                    onChanged: (value) {
+                      setState(() => _currentFilter = value!);
+                      Navigator.pop(context);
+                    },
+                  ))
+                      .toList(),
+                ),
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: widget.onLogout,
+          ),
           CircleAvatar(
-            child: Text(widget.userName.substring(0, 1).toUpperCase()),
             backgroundColor: Colors.pink[200],
             foregroundColor: Colors.white,
+            child: Text(widget.userName.substring(0, 1).toUpperCase()),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
         ],
       ),
       body: Column(
@@ -131,8 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              decoration: InputDecoration(
-                labelText: 'Search (title, description, or category)',
+              decoration: const InputDecoration(
+                labelText: 'Search',
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
@@ -148,10 +130,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline, size: 64, color: Colors.pink[200]),
-                SizedBox(height: 16),
-                Text('No todos yet!', style: TextStyle(fontSize: 18)),
-                Text('Tap the + button to add one', style: TextStyle(color: Colors.grey)),
+                Icon(Icons.check_circle_outline,
+                    size: 64, color: Colors.pink[200]),
+                const SizedBox(height: 16),
+                const Text('No todos yet!', style: TextStyle(fontSize: 18)),
+                const Text('Tap the + button to add one',
+                    style: TextStyle(color: Colors.grey)),
               ],
             ),
           )
@@ -165,42 +149,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   background: Container(color: Colors.red),
                   onDismissed: (_) => _deleteTodo(_todos.indexOf(todo)),
                   child: Card(
-                    margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
                     child: ListTile(
                       title: Text(
                         todo.title,
                         style: TextStyle(
-                          decoration: todo.isDone ? TextDecoration.lineThrough : null,
-                          color: todo.isDone ? Colors.grey : Theme.of(context).textTheme.titleMedium?.color,
+                          decoration: todo.isDone
+                              ? TextDecoration.lineThrough
+                              : null,
+                          color: todo.isDone
+                              ? Colors.grey
+                              : Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.color,
                         ),
                       ),
                       leading: Checkbox(
                         value: todo.isDone,
-                        onChanged: (_) => _toggleTodoStatus(_todos.indexOf(todo)),
+                        onChanged: (_) =>
+                            _toggleTodoStatus(_todos.indexOf(todo)),
                         activeColor: Colors.pink,
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (todo.description != null && todo.description!.isNotEmpty)
+                          if (todo.description != null &&
+                              todo.description!.isNotEmpty)
                             Text(todo.description!),
-                          if (todo.category != null && todo.category!.isNotEmpty)
-                            Text(
-                              'Category: ${todo.category}',
-                              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-                            ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
                             'Created: ${todo.createdAt.toString().substring(0, 10)}',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
                           ),
                           if (_isOverdue(todo))
-                            Text(
+                            const Text(
                               'Overdue',
                               style: TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                  color: Colors.red,
+                                  fontWeight: FontWeight.bold),
                             ),
                         ],
                       ),
@@ -208,7 +197,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => TaskDetailScreen(todo: todo),
+                            builder: (context) =>
+                                TaskDetailScreen(todo: todo),
                           ),
                         );
                       },
@@ -222,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.pink,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
         onPressed: () async {
           final result = await Navigator.push<Todo>(
             context,
@@ -234,5 +224,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-enum TodoFilter { all, completed, pending }
