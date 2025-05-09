@@ -13,3 +13,5 @@ It allows users to add, manage, search, filter, and track their tasks easily.
 - Due date & overdue highlight
 - Dark mode support (with Riverpod) [Upcoming]
 - Undo delete (via SnackBar)
+
+![Alt text for the image](screenshots/login.jpeg)
