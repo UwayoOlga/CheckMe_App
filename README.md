@@ -1,4 +1,4 @@
- # ✅ Todo App
+ # CheckMe – Todo App
 
 A simple **Todo List App** built with **Flutter** and developed in **Android Studio**.  
 It allows users to add, manage, search, filter, and track their tasks easily.
