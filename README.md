@@ -14,9 +14,9 @@ It allows users to add, manage, search, filter, and track their tasks easily.
 - Dark mode support (with Riverpod) [Upcoming]
 - Undo delete (via SnackBar)
 
-!(screenshots/login.jpeg)
-!(screenshots/home.jpeg)
-!(screenshots/add to do.jpeg)
-!(screenshots/Due date.jpeg)
-!(screenshots/dashboard.jpeg)
+![loginscreen](screenshots/login.jpeg)
+![a welcoming home screen for first login](screenshots/home.jpeg)
+![Adding tasks](screenshots/addToDo.jpeg)
+![selecting the due date](screenshots/DueDate.jpeg)
+![Dashboard](screenshots/dashboard.jpeg)
  
