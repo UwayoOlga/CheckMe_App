@@ -1,78 +1,80 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../theme/todo_provider.dart';
+import '../theme/theme_provider.dart';
 import 'todo_model.dart';
 import 'add_todo_screen.dart';
 import 'todo_detail_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerWidget {
   final String userName;
   final VoidCallback onLogout;
   const HomeScreen({required this.userName, required this.onLogout});
+
   @override
-  _HomeScreenState createState() => _HomeScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todos = ref.watch(todosProvider);
+    final filter = ref.watch(filterProvider);
+    final searchQuery = ref.watch(searchQueryProvider);
+    final theme = ref.watch(themeProvider);
+    final notifier = ref.read(todosProvider.notifier);
+    final filterNotifier = ref.read(filterProvider.notifier);
+    final searchNotifier = ref.read(searchQueryProvider.notifier);
+    final themeNotifier = ref.read(themeProvider.notifier);
+    final categoryNotifier = ref.read(categoryFilterProvider.notifier);
+    final selectedCategory = ref.watch(categoryFilterProvider);
 
-class _HomeScreenState extends State<HomeScreen> {
-  final List<Todo> _todos = [];
-  TodoFilter _currentFilter = TodoFilter.all;
-  String _searchQuery = '';
+    // Category filter
+    final categories = ['All', ...{
+      ...todos.map((t) => t.category ?? '').where((c) => c.isNotEmpty)
+    }];
 
-  void _addTodo(Todo todo) {
-    setState(() {
-      _todos.add(todo);
-      _todos.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    });
-  }
-
-  void _toggleTodoStatus(int index) {
-    setState(() {
-      _todos[index].isDone = !_todos[index].isDone;
-    });
-  }
-
-  void _deleteTodo(int index) {
-    final deletedTodo = _todos.removeAt(index);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Todo deleted'),
-        action: SnackBarAction(
-          label: 'UNDO',
-          textColor: Colors.pink[200],
-          onPressed: () {
-            setState(() {
-              _todos.insert(index, deletedTodo);
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  List<Todo> get _filteredTodos {
-    final filteredList = _todos.where((todo) =>
-    todo.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        (todo.description?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
-            false)).toList();
-    switch (_currentFilter) {
+    List<Todo> filteredTodos = todos
+        .where((todo) =>
+            (searchQuery.isEmpty ||
+                todo.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                (todo.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)) &&
+            (selectedCategory == 'All' || todo.category == selectedCategory))
+        .toList();
+    switch (filter) {
       case TodoFilter.completed:
-        return filteredList.where((todo) => todo.isDone).toList();
+        filteredTodos = filteredTodos.where((todo) => todo.isDone).toList();
+        break;
       case TodoFilter.pending:
-        return filteredList.where((todo) => !todo.isDone).toList();
+        filteredTodos = filteredTodos.where((todo) => !todo.isDone).toList();
+        break;
       case TodoFilter.all:
       default:
-        return filteredList;
+        break;
     }
-  }
 
-  bool _isOverdue(Todo todo) {
-    return todo.dueDate?.isBefore(DateTime.now()) == true && !todo.isDone;
-  }
+    bool isOverdue(Todo todo) {
+      return todo.dueDate?.isBefore(DateTime.now()) == true && !todo.isDone;
+    }
 
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Welcome, ${widget.userName}"),
+        title: Text("Welcome, $userName"),
         actions: [
+          // Theme switcher
+          PopupMenuButton<AppTheme>(
+            icon: const Icon(Icons.color_lens),
+            onSelected: (theme) => themeNotifier.toggleTheme(theme),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: AppTheme.light,
+                child: Text('Light'),
+              ),
+              const PopupMenuItem(
+                value: AppTheme.dark,
+                child: Text('Dark'),
+              ),
+              const PopupMenuItem(
+                value: AppTheme.system,
+                child: Text('System'),
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
@@ -82,15 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: TodoFilter.values
                       .map((filter) => RadioListTile<TodoFilter>(
-                    title: Text(filter.name[0].toUpperCase() +
-                        filter.name.substring(1)),
-                    value: filter,
-                    groupValue: _currentFilter,
-                    onChanged: (value) {
-                      setState(() => _currentFilter = value!);
-                      Navigator.pop(context);
-                    },
-                  ))
+                            title: Text(filter.name[0].toUpperCase() + filter.name.substring(1)),
+                            value: filter,
+                            groupValue: filter,
+                            onChanged: (value) {
+                              filterNotifier.state = value!;
+                              Navigator.pop(context);
+                            },
+                          ))
                       .toList(),
                 ),
               );
@@ -98,12 +99,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: widget.onLogout,
+            onPressed: onLogout,
           ),
           CircleAvatar(
             backgroundColor: Colors.pink[200],
             foregroundColor: Colors.white,
-            child: Text(widget.userName.substring(0, 1).toUpperCase()),
+            child: Text(userName.substring(0, 1).toUpperCase()),
           ),
           const SizedBox(width: 16),
         ],
@@ -118,95 +119,85 @@ class _HomeScreenState extends State<HomeScreen> {
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(),
               ),
+              onChanged: (value) => searchNotifier.state = value,
+            ),
+          ),
+          // Category filter
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButton<String>(
+              value: selectedCategory,
+              items: categories.map((cat) => DropdownMenuItem(
+                value: cat,
+                child: Text(cat.isEmpty ? 'Uncategorized' : cat),
+              )).toList(),
               onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
+                categoryNotifier.state = value!;
               },
             ),
           ),
-          _todos.isEmpty
-              ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_outline,
-                    size: 64, color: Colors.pink[200]),
-                const SizedBox(height: 16),
-                const Text('No todos yet!', style: TextStyle(fontSize: 18)),
-                const Text('Tap the + button to add one',
-                    style: TextStyle(color: Colors.grey)),
-              ],
-            ),
-          )
-              : Expanded(
-            child: ListView.builder(
-              itemCount: _filteredTodos.length,
-              itemBuilder: (context, index) {
-                final todo = _filteredTodos[index];
-                return Dismissible(
-                  key: ValueKey(todo.createdAt),
-                  background: Container(color: Colors.red),
-                  onDismissed: (_) => _deleteTodo(_todos.indexOf(todo)),
-                  child: Card(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
-                    child: ListTile(
-                      title: Text(
-                        todo.title,
-                        style: TextStyle(
-                          decoration: todo.isDone
-                              ? TextDecoration.lineThrough
-                              : null,
-                          color: todo.isDone
-                              ? Colors.grey
-                              : Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.color,
-                        ),
-                      ),
-                      leading: Checkbox(
-                        value: todo.isDone,
-                        onChanged: (_) =>
-                            _toggleTodoStatus(_todos.indexOf(todo)),
-                        activeColor: Colors.pink,
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (todo.description != null &&
-                              todo.description!.isNotEmpty)
-                            Text(todo.description!),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Created: ${todo.createdAt.toString().substring(0, 10)}',
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey),
-                          ),
-                          if (_isOverdue(todo))
-                            const Text(
-                              'Overdue',
-                              style: TextStyle(
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                        ],
-                      ),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TaskDetailScreen(todo: todo),
-                          ),
-                        );
-                      },
+          Expanded(
+            child: filteredTodos.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 64, color: Colors.pink[200]),
+                        const SizedBox(height: 16),
+                        const Text('No todos yet!', style: TextStyle(fontSize: 18)),
+                        const Text('Tap the + button to add one', style: TextStyle(color: Colors.grey)),
+                      ],
                     ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredTodos.length,
+                    itemBuilder: (context, index) {
+                      final todo = filteredTodos[index];
+                      return Dismissible(
+                        key: ValueKey(todo.createdAt),
+                        background: Container(color: Colors.red),
+                        onDismissed: (_) => notifier.deleteTodo(todos.indexOf(todo)),
+                        child: Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: ListTile(
+                            title: Text(
+                              todo.title,
+                              style: TextStyle(
+                                decoration: todo.isDone ? TextDecoration.lineThrough : null,
+                                color: todo.isDone ? Colors.grey : Theme.of(context).textTheme.titleMedium?.color,
+                              ),
+                            ),
+                            leading: Checkbox(
+                              value: todo.isDone,
+                              onChanged: (_) => notifier.toggleTodoStatus(todos.indexOf(todo)),
+                              activeColor: Colors.pink,
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (todo.description != null && todo.description!.isNotEmpty)
+                                  Text(todo.description!),
+                                const SizedBox(height: 4),
+                                Text('Created: ${todo.createdAt.toString().substring(0, 10)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                if (isOverdue(todo))
+                                  const Text('Overdue', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                                if (todo.category != null && todo.category!.isNotEmpty)
+                                  Text('Category: ${todo.category}', style: const TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                              ],
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TaskDetailScreen(todo: todo),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -218,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(builder: (_) => AddTodoScreen()),
           );
-          if (result != null) _addTodo(result);
+          if (result != null) notifier.addTodo(result);
         },
       ),
     );

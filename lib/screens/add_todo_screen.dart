@@ -3,32 +3,50 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'todo_model.dart';
 import 'package:checkme/theme/todo_form_state.dart';
 
-class AddTodoScreen extends ConsumerWidget {
-  const AddTodoScreen({Key? key}) : super(key: key);
+class AddTodoScreen extends ConsumerStatefulWidget {
+  final Todo? todo;
+  final int? index;
+  const AddTodoScreen({Key? key, this.todo, this.index}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AddTodoScreen> createState() => _AddTodoScreenState();
+}
 
+class _AddTodoScreenState extends ConsumerState<AddTodoScreen> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.todo != null) {
+      final notifier = ref.read(todoFormProvider.notifier);
+      notifier.updateTitle(widget.todo!.title);
+      notifier.updateDescription(widget.todo!.description ?? '');
+      notifier.updateDueDate(widget.todo!.dueDate);
+      notifier.updateCategory(widget.todo!.category);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final todoForm = ref.watch(todoFormProvider);
-
     final todoFormNotifier = ref.read(todoFormProvider.notifier);
 
     void _submit() {
       if (todoForm.title.isNotEmpty) {
-        final todo = Todo(
+        final newTodo = Todo(
           title: todoForm.title,
           description: todoForm.description?.isEmpty ?? true ? null : todoForm.description,
-          createdAt: DateTime.now(),
+          createdAt: widget.todo?.createdAt ?? DateTime.now(),
+          isDone: widget.todo?.isDone ?? false,
           dueDate: todoForm.dueDate,
           category: todoForm.category,
         );
-        Navigator.pop(context, todo);
+        Navigator.pop(context, {'todo': newTodo, 'index': widget.index});
       }
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Todo'),
+        title: Text(widget.todo == null ? 'Add Todo' : 'Edit Todo'),
         actions: [
           IconButton(
             icon: const Icon(Icons.check),
@@ -41,7 +59,6 @@ class AddTodoScreen extends ConsumerWidget {
         child: Form(
           child: Column(
             children: [
-
               TextFormField(
                 initialValue: todoForm.title,
                 decoration: const InputDecoration(
@@ -53,7 +70,6 @@ class AddTodoScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 16),
-
               TextField(
                 controller: TextEditingController(text: todoForm.description),
                 maxLines: 3,
@@ -66,7 +82,6 @@ class AddTodoScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 16),
-
               DropdownButtonFormField<String>(
                 value: todoForm.category,
                 decoration: const InputDecoration(
@@ -84,7 +99,6 @@ class AddTodoScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 16),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -111,7 +125,6 @@ class AddTodoScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 32),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -124,7 +137,7 @@ class AddTodoScreen extends ConsumerWidget {
                     ),
                   ),
                   onPressed: _submit,
-                  child: const Text('SAVE', style: TextStyle(fontSize: 16)),
+                  child: Text(widget.todo == null ? 'SAVE' : 'UPDATE', style: const TextStyle(fontSize: 16)),
                 ),
               ),
             ],

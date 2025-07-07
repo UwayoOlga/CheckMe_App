@@ -9,6 +9,8 @@ import '../screens/todo_model.dart';
 
  final searchQueryProvider = StateProvider<String>((ref) => '');
 
+ final categoryFilterProvider = StateProvider<String>((ref) => 'All');
+
  class TodoListNotifier extends StateNotifier<List<Todo>> {
   TodoListNotifier() : super([]);
 
@@ -26,6 +28,10 @@ import '../screens/todo_model.dart';
     final updated = [...state]..removeAt(index);
     state = updated;
   }
-}
 
- enum TodoFilter { all, completed, pending }
+  void updateTodo(int index, Todo todo) {
+    final updated = [...state];
+    updated[index] = todo;
+    state = updated;
+  }
+}

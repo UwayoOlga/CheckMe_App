@@ -92,8 +92,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 50,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.pink, // Button background color
-                      foregroundColor: Colors.white, // Text color
+                      backgroundColor: Colors.pink,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white, // Explicit text color
+                        color: Colors.white,
                       ),
                     ),
                   ),
