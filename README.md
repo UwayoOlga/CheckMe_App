@@ -11,7 +11,7 @@ It allows users to add, manage, search, filter, and track their tasks easily.
 - Filter by All, Completed, or Pending tasks
 - Task detail view
 - Due date & overdue highlight
-- Dark mode support (with Riverpod) [Upcoming]
+- Dark mode support (with Riverpod) 
 - Undo delete (via SnackBar)
 
 ![loginscreen](screenshots/login.jpeg)
